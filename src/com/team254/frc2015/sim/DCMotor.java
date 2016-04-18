@@ -4,7 +4,7 @@ package com.team254.frc2015.sim;
  * Simulates a DC motor using a simplified model appropriate for systems with
  * slow time constants.
  * 
- * @author jared
+ * @author jared (971) with modifications by Jonathan Zwiebel (8)
  */
 public class DCMotor {
     // Motor constants
@@ -18,22 +18,24 @@ public class DCMotor {
     protected double m_velocity;
     protected double m_current;
 
-    // Convenience methods for constructing common motors.
     static DCMotor makeRS775() {
-        final double KT = 0.009; // 9 mNm / A
-        final double KV = 1083.0 * (Math.PI * 2.0) / 60.0; // 1083 rpm/V in
-                                                           // rad/sec/V
-        final double RESISTANCE = (18.0 / 130.0); // Rated for 130A stall @ 18V
-        final double INERTIA = 1.20348237e-5; // 127g cylinder @ 1.084" diameter
+        final double KT = 0.009;
+        final double KV = 1083.0 * (Math.PI * 2.0) / 60.0;
+        final double RESISTANCE = (18.0 / 130.0);
+        final double INERTIA = 1.20348237e-5;
         return new DCMotor(KT, KV, RESISTANCE, INERTIA);
     }
-
-    static DCMotor makeRS550() {
-        final double KT = 0.004862;
-        final double KV = 1608.0 * (Math.PI * 2.0) / 60.0;
-        final double RESISTANCE = (12.0 / 85.0);
-        final double INERTIA = 0; // TODO(jared): Measure this
-        return new DCMotor(KT, KV, RESISTANCE, INERTIA);
+    
+    /*
+     * Added by Jonathan Zwiebel
+     * Shortcut for generating a CIM motor
+     */
+    static DCMotor makeCIM() {
+    	final double KT = (343.27 / 133.0) * 0.00706155; // (Stall Torque / Stall Current)
+    	final double KV = (5310.0 / 12.0) * (Math.PI * 2.0) / 60.0; // (No Load RPM / Nominal v) * (60 seconds / Minute) * (2 pi Radians / Rotation)
+    	final double RESISTANCE = (12.0 / 133.0); // (Nominal v / Stall Current)
+    	final double INERTIA = 0; // TODO(Jonathan): Calculate
+    	return new DCMotor(KT, KV, RESISTANCE, INERTIA);
     }
 
     /*
@@ -45,12 +47,11 @@ public class DCMotor {
      * @param efficiency The efficiency of the transmission.
      * @return A DCMotor representing the combined transmission.
      */
-    static DCMotor makeTransmission(DCMotor motor, int num_motors,
-            double gear_reduction, double efficiency) {
-        return new DCMotor(num_motors * gear_reduction * efficiency
-                * motor.m_kt, motor.m_kv / gear_reduction, motor.m_resistance
-                / num_motors, motor.m_motor_inertia * num_motors
-                * gear_reduction * gear_reduction);
+    static DCMotor makeTransmission(DCMotor motor, int num_motors, double gear_reduction, double efficiency) {
+        	return new DCMotor(num_motors * gear_reduction * efficiency * motor.m_kt, 
+        		motor.m_kv / gear_reduction, 
+        		motor.m_resistance / num_motors, 
+        		motor.m_motor_inertia * num_motors * gear_reduction * gear_reduction);
     }
 
     /**
@@ -125,11 +126,9 @@ public class DCMotor {
          * dw/dt = (V - Kv * w) * Kt / (R * J) - external_torque / J
          */
         load += m_motor_inertia;
-        double acceleration = (applied_voltage - m_velocity / m_kv) * m_kt
-                / (m_resistance * load) + external_torque / load;
+        double acceleration = (applied_voltage - m_velocity / m_kv) * m_kt / (m_resistance * load) + external_torque / load;
         m_velocity += acceleration * timestep;
-        m_position += m_velocity * timestep + .5 * acceleration * timestep
-                * timestep;
+        m_position += m_velocity * timestep + .5 * acceleration * timestep * timestep;
         m_current = load * acceleration * Math.signum(applied_voltage) / m_kt;
     }
 
