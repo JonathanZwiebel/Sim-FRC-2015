@@ -34,7 +34,7 @@ public class DCMotor {
     	final double KT = (343.27 / 133.0) * 0.00706155; // (Stall Torque / Stall Current)
     	final double KV = (5310.0 / 12.0) * (Math.PI * 2.0) / 60.0; // (No Load RPM / Nominal v) * (60 seconds / Minute) * (2 pi Radians / Rotation)
     	final double RESISTANCE = (12.0 / 133.0); // (Nominal v / Stall Current)
-    	final double INERTIA = 0; // TODO(Jonathan): Calculate
+    	final double INERTIA = 7.752e-5; // From chiefdelphi.com/forums/showthread.php?t=131695
     	return new DCMotor(KT, KV, RESISTANCE, INERTIA);
     }
 
@@ -115,14 +115,13 @@ public class DCMotor {
      * @param timestep
      *            How long the input is applied (s)
      */
-    public void step(double applied_voltage, double load,
-            double external_torque, double timestep) {
+    public void step(double applied_voltage, double load, double external_torque, double timestep) {
         /*
-         * Using the 971-style first order system model. V = I * R + Kv * w
+         * Using the 971-style first order system model. 
+         * 
+         * V = I * R + Kv * w
          * torque = Kt * I
-         * 
          * V = torque / Kt * R + Kv * w torque = J * dw/dt + external_torque
-         * 
          * dw/dt = (V - Kv * w) * Kt / (R * J) - external_torque / J
          */
         load += m_motor_inertia;
